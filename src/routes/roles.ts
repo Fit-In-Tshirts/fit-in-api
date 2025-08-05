@@ -4,8 +4,8 @@ import prisma from '../prisma';
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.send({message:200, data:users});
+  const roles = await prisma.role.findMany();
+  res.send({message:res.status , data:roles});
 });
 
 export default router;

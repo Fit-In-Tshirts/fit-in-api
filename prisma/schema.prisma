@@ -16,7 +16,82 @@ datasource db {
 }
 
 model User {
-  id    Int    @id @default(autoincrement())
-  name  String
-  email String @unique
+  id           String   @id @default(uuid()) @db.Uuid
+  firstName    String   @db.VarChar(50)
+  lastName     String   @db.VarChar(50)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @db.VarChar(255)
+  roleId       Int      @default(1) // Default to customer role
+  isActive     Boolean  @default(true)
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relationships
+  role         Role     @relation(fields: [roleId], references: [id])
+  addresses    Address[]
+  phoneNumbers PhoneNumber[]
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  permissions Json?    // Store role permissions as JSON
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relationships
+  users User[]
+
+  @@map("roles")
+}
+
+model Address {
+  id           Int      @id @default(autoincrement())
+  userId       String   @db.Uuid
+  houseNumber  String?  @db.VarChar(20)
+  addressLine1 String   @db.VarChar(255)
+  addressLine2 String?  @db.VarChar(255)
+  city         String   @db.VarChar(100)
+  province     String   @db.VarChar(100)
+  zipCode      String   @db.VarChar(20) // Changed to String for international support
+  country      String   @db.VarChar(100) @default("Sri Lanka")
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relationship
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model PhoneNumber {
+  id          Int         @id @default(autoincrement())
+  userId      String      @db.Uuid
+  phoneNumber String      @db.VarChar(20)
+  countryCode String?     @db.VarChar(5) @default("+94")
+  phoneType   PhoneType   @default(MOBILE)
+  isDefault   Boolean     @default(false)
+  isVerified  Boolean     @default(false)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
+
+  // Relationship
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([phoneNumber])
+  @@map("phone_numbers")
+}
+
+
+enum PhoneType {
+  MOBILE
+  HOME
 }

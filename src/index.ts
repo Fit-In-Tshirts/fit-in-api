@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import usersRouter from './routes/users';
+import rolesRouter from './routes/roles';
+
 
 dotenv.config();
 const app = express();
@@ -13,6 +15,7 @@ app.use(express.json());
 
 // Mount routes
 app.use('/api/users', usersRouter);
+app.use('/api/roles', rolesRouter);
 
 app.get("/", (req, res) => {
   res.send({message: `Server running on port ${PORT}`});
