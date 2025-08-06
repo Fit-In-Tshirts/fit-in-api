@@ -8,7 +8,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
   },
   "prisma": {
-    "seed": "tsx src/prisma/seed.ts"
+    "seed": "tsx src/seeds/seed.ts"
   },
   "keywords": [],
   "author": "",
