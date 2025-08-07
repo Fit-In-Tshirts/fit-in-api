@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/getall', async (req, res) => {
   const roles = await prisma.role.findMany();
   res.send({message:res.status , data:roles});
 });
