@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
-import { hashPassword } from '../common/methods';
+import { comparePasswords, hashPassword } from '../common/methods';
 import { PhoneTypes } from '../common/types';
 import { PhoneType } from '../generated/prisma';
 
@@ -70,10 +70,13 @@ router.post('/signup', async(req, res) => {
     })
     }
 
+    // set JWT related codes here
+
     return res.status(201).json({
       success: true,
       message: 'User created successfully!',
       data: {id: newUser.id, email:newUser.email}
+      // send token as well
     })
   } catch(error: any) {
     console.error('Signup error:', error);
@@ -82,6 +85,51 @@ router.post('/signup', async(req, res) => {
       message: 'Internal server error',
       error: error instanceof Error ? error.message : error,
     })
+  }
+})
+
+router.post('/singin', async(req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if(!email || !password ) {
+      return res.status(400).json({success: false, message: 'Missing required fields'});
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+
+    if (!existingUser) {
+      return res.status(409).json({ success: false, message: "Email not registered" });
+    }
+
+    const isPasswordValid = await comparePasswords(password, existingUser.passwordHash);
+
+    if(!isPasswordValid) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    // set up the JWT
+
+    const userData = {
+      id: existingUser.id,
+      email: existingUser.email,
+      roleId: existingUser.roleId
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Signin successful',
+      data: userData
+      // token: token 
+      // Include if using JWT
+      
+    });
+  } catch(error) {
+    console.error('Signin error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
 })
 
