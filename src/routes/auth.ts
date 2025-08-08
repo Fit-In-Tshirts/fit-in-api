@@ -3,9 +3,8 @@ import { prisma } from '../lib/prisma';
 import { comparePasswords, hashPassword } from '../utils/hash';
 import { PhoneType } from '../generated/prisma';
 import { JWTPayload } from '../types/types';
-import { exit } from 'process';
-import { generateKey } from 'crypto';
 import { generateToken } from '../utils/jwt';
+import { authenticateToken } from '../middlewares/JWT_Middleware';
 
 const router = express.Router();
 
@@ -165,6 +164,15 @@ router.post('/signin', async(req, res) => {
       message: 'Internal server error'
     });
   }
+})
+
+// this only for testing the JWT token
+//and cookie behaviors
+router.get('/me', authenticateToken, async(req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: 'secured endpoint reached'
+  })
 })
 
 export default router;

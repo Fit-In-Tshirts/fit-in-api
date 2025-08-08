@@ -15,7 +15,7 @@ export const generateToken = (payload: JWTPayload): string => {
     JWT_SECRET,
     {
       algorithm: 'HS256',
-      expiresIn: '1d', //use env variable here
+      expiresIn: '7d', //use env variable here
       issuer: APP_NAME
     }
   );
