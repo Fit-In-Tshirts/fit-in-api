@@ -2,6 +2,10 @@ import express from 'express';
 import { prisma } from '../lib/prisma';
 import { comparePasswords, hashPassword } from '../utils/hash';
 import { PhoneType } from '../generated/prisma';
+import { JWTPayload } from '../types/types';
+import { exit } from 'process';
+import { generateKey } from 'crypto';
+import { generateToken } from '../utils/jwt';
 
 const router = express.Router();
 
@@ -18,13 +22,21 @@ router.post('/signup', async(req, res) => {
     } = req.body;
 
     if(!email || !password || !firstName || !lastName || !address || !phoneNumber_mobile) {
-      return res.status(400).json({success: false, message: 'Missing required fields'});
+      return res.status(400).json({
+        success: false, 
+        message: 'Missing required fields'
+      });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ 
+      where: { email } 
+    });
 
     if (existingUser) {
-      return res.status(409).json({ success: false, message: 'Email already registered' });
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Email already registered' 
+      });
     }
 
     const hashedPassword = await hashPassword(password);
@@ -70,12 +82,21 @@ router.post('/signup', async(req, res) => {
     }
 
     // set JWT related codes here
+    const tokenPayload : JWTPayload = {
+      id: newUser.id,
+      email: newUser.email,
+      roleId: newUser.roleId
+    }
+
+    const token = generateToken(tokenPayload)
 
     return res.status(201).json({
       success: true,
       message: 'User created successfully!',
-      data: {id: newUser.id, email:newUser.email}
-      // send token as well
+      data: {
+        user: tokenPayload,
+        token: token
+      }
     })
   } catch(error: any) {
     console.error('Signup error:', error);
@@ -87,42 +108,56 @@ router.post('/signup', async(req, res) => {
   }
 })
 
-router.post('/singin', async(req, res) => {
+router.post('/signin', async(req, res) => {
   try {
     const { email, password } = req.body;
 
     if(!email || !password ) {
-      return res.status(400).json({success: false, message: 'Missing required fields'});
+      return res.status(400).json({
+        success: false, 
+        message: 'Missing required fields'
+      });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ 
+      where: { email } 
+    });
 
     if (!existingUser) {
-      return res.status(409).json({ success: false, message: "Email not registered" });
+      return res.status(409).json({ 
+        success: false, 
+        message: "Email not registered" 
+      });
     }
 
     const isPasswordValid = await comparePasswords(password, existingUser.passwordHash);
 
     if(!isPasswordValid) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
     }
 
     // set up the JWT
-
-    const userData = {
+    const tokenPayload : JWTPayload = {
       id: existingUser.id,
       email: existingUser.email,
       roleId: existingUser.roleId
     }
 
+    const token = generateToken(tokenPayload)
+
+    //return user data and token
     return res.status(200).json({
       success: true,
       message: 'Signin successful',
-      data: userData
-      // token: token 
-      // Include if using JWT
-      
+      data: {
+        user: tokenPayload,
+        token: token
+      }
     });
+
   } catch(error) {
     console.error('Signin error:', error);
     return res.status(500).json({
