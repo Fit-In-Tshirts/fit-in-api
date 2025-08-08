@@ -1,7 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
-import { comparePasswords, hashPassword } from '../common/methods';
-import { PhoneTypes } from '../common/types';
+import { comparePasswords, hashPassword } from '../utils/hash';
 import { PhoneType } from '../generated/prisma';
 
 const router = express.Router();
