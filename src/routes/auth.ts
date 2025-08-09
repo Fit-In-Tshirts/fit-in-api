@@ -84,6 +84,8 @@ router.post('/signup', async(req, res) => {
     const tokenPayload : JWTPayload = {
       id: newUser.id,
       email: newUser.email,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
       roleId: newUser.roleId
     }
 
@@ -142,6 +144,8 @@ router.post('/signin', async(req, res) => {
     const tokenPayload : JWTPayload = {
       id: existingUser.id,
       email: existingUser.email,
+      firstName: existingUser.firstName,
+      lastName: existingUser.lastName,
       roleId: existingUser.roleId
     }
 
