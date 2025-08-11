@@ -58,7 +58,7 @@ model Address {
   addressLine2 String?  @db.VarChar(255)
   city         String   @db.VarChar(100)
   province     String   @db.VarChar(100)
-  zipCode      String   @db.VarChar(20) // Changed to String for international support
+  zipcode      String   @db.VarChar(20) // Changed to String for international support
   country      String   @db.VarChar(100) @default("Sri Lanka")
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
