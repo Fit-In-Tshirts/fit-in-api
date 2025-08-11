@@ -54,8 +54,8 @@ router.post('/signup', async(req, res) => {
       data: {
         user: { connect: { id: newUser.id } },
         houseNumber: address.houseNumber,
-        addressLine1: address.addressLine_1,
-        addressLine2: address.addressLine_2,
+        addressLine1: address.addressLine1,
+        addressLine2: address.addressLine2,
         city: address.city,
         province: address.province,
         zipcode: address.zipcode,
