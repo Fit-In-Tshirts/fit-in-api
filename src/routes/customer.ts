@@ -7,14 +7,40 @@ const router = express.Router();
 
 router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]),async (req, res) => {
   try{
-    const users = await prisma.user.findMany();
+    const customers = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        addresses: {
+          select: {
+            houseNumber: true,
+            addressLine1: true,
+            addressLine2: true,
+            province: true,
+            city: true,
+            zipCode: true,
+          }
+        },
+        phoneNumbers: {
+          select: {
+            phoneNumber: true,
+            phoneType: true
+          }
+        }
+      },
+      where: {
+        roleId: 1
+      }
+    });
 
-    if(!users) {
+    if(!customers) {
       return res.status(204).json({
         success: true,
         message: 'No users found',
         data: {
-          users: []
+          customers: []
         }
       })
     }
@@ -23,7 +49,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
       success: true,
       message: 'Retrieval successful',
       data: {
-        users: users
+        customers: customers
       }
     })
   } catch(error:any) {

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
+import customerRouter from './routes/customer';
 import userRouter from './routes/user';
 import roleRouter from './routes/role';
 import authRouter from './routes/auth'
@@ -15,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // Mount routes
+app.use('/api/customer', customerRouter);
 app.use('/api/user', userRouter);
 app.use('/api/role', roleRouter);
 app.use('/api/auth', authRouter);
