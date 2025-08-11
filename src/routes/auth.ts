@@ -58,7 +58,7 @@ router.post('/signup', async(req, res) => {
         addressLine2: address.addressLine_2,
         city: address.city,
         province: address.province,
-        zipCode: address.zipcode,
+        zipcode: address.zipcode,
       }
     });
 

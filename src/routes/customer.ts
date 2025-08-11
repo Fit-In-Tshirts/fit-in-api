@@ -20,7 +20,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
             addressLine2: true,
             province: true,
             city: true,
-            zipCode: true,
+            zipcode: true,
           }
         },
         phoneNumbers: {
