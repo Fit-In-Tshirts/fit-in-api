@@ -55,8 +55,6 @@ export async function main() {
       create: role
     })
   }
-
-  console.log('Roles seeded successfully!')
 }
 
 main()
