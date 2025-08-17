@@ -140,6 +140,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
         lastName: true,
         addresses: {
           select: {
+            id: true,
             houseNumber: true,
             addressLine1: true,
             addressLine2: true,
@@ -150,6 +151,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
         },
         phoneNumbers: {
           select: {
+            id: true,
             phoneNumber: true,
             phoneType: true
           }
@@ -189,18 +191,125 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
   };
 });
 
-// router.get('/getbyid', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async (req, res) => {
-//   try {
-//     const {id} = req.query;
-//     console.log(id);
-//   }catch(error:any) {
-//     console.error('Customer retrieval by Id error:', error);
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Internal server error',
-//       error: error instanceof Error ? error.message : error,
-//     })
-//   }
-// })
+router.get('/get_by_id', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async (req, res) => {
+  try {
+    const {id} = req.query;
+
+    if(!id) {
+      return res.status(422).json({
+        success: false,
+        message: 'Customer Id has not been received'
+      });
+    }
+
+    const customerId = id.toString()
+
+    const customer = await prisma.user.findUnique({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        addresses: {
+          select: {
+            id: true,
+            houseNumber: true,
+            addressLine1: true,
+            addressLine2: true,
+            province: true,
+            city: true,
+            zipcode: true,
+          }
+        },
+        phoneNumbers: {
+          select: {
+            id:true,
+            phoneNumber: true,
+            phoneType: true
+          }
+        }
+      },
+      where: {
+        id: customerId,
+      }
+    })
+
+    if(!customer) {
+      return res.status(204).json({
+        success: false,
+        message: 'No customer found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Customer found',
+      data: customer
+    });
+
+  }catch(error:any) {
+    console.error('Customer retrieval by Id error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : error,
+    })
+  }
+})
+
+router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async (req, res) => {
+  try {
+    const { id } = req.body
+
+    if(!id) {
+      return res.status(422).json({
+        success: false,
+        message: 'Customer Id has not been received'
+      });
+    }
+
+    const customerId = id.toString()
+
+    const customer = await prisma.user.findUnique({
+      where: {
+        id: customerId,
+        roleId: Roles.CUSTOMER
+      }
+    })
+
+    if(!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'No customer found'
+      });
+    }
+
+    const deletedUser = await prisma.user.delete({
+      where: {
+        id: customerId
+      }
+    })
+
+    if(!deletedUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'User can not be deleted'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Customer deleted successfully',
+    });
+
+  } catch(error:any) {
+    console.error('Customer deletion by Id error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : error,
+    })
+  }
+})
 
 export default router;
