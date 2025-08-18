@@ -35,7 +35,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
 
     //Build where clause for filtering
     const whereClause: any = {
-      roleId: 1,
+      roleId: Roles.CUSTOMER,
       ...(email && {
         email: {
           contains: email as string,

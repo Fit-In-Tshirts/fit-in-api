@@ -5,6 +5,7 @@ import { PhoneType } from '../generated/prisma';
 import { JWTPayload } from '../types/types';
 import { generateToken } from '../utils/jwt';
 import { authenticateToken } from '../middlewares/JWT_Middleware';
+import { Roles } from '../types/roles';
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.post('/signup', async(req, res) => {
         lastName: lastName,
         email: email,
         passwordHash: hashedPassword,
-        roleId: 1,
+        roleId: Roles.CUSTOMER,
       },
     });
 
