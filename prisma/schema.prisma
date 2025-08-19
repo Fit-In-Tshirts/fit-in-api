@@ -91,8 +91,243 @@ model PhoneNumber {
   @@map("phone_numbers")
 }
 
+// New models related to products, categories, designs, colors, stocks and inventory
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  imageUrl    String?  @db.VarChar(500)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relationships
+  products        Product[]
+  categoryDesigns CategoryDesign[]
+  sizes           Size[]
+
+  @@map("categories")
+}
+
+model Design {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  imageUrl    String?  @db.VarChar(500)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relationships
+  categoryDesigns CategoryDesign[]
+  productDesigns  ProductDesign[]
+
+  @@map("designs")
+}
+
+model CategoryDesign {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @db.Uuid
+  designId   String   @db.Uuid
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  design   Design   @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, designId])
+  @@map("category_designs")
+}
+
+model Color {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(50)
+  hexCode   String?  @db.VarChar(7)
+  rgbCode   String?  @db.VarChar(20)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  products      Product[]      @relation("ProductMainColor")
+  productColors ProductColor[]
+  inventory     Inventory[]
+  productImages ProductImage[]
+
+  @@map("colors")
+}
+
+model Size {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(10)
+  categoryId   String?  @db.Uuid
+  sortOrder    Int      @default(0)
+  measurements Json?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  category  Category?   @relation(fields: [categoryId], references: [id])
+  inventory Inventory[]
+
+  @@unique([name, categoryId])
+  @@map("sizes")
+}
+
+model Product {
+  id                 String          @id @default(uuid()) @db.Uuid
+  name               String          @db.VarChar(200)
+  slug               String          @unique @db.VarChar(200)
+  description        String?         @db.Text
+  categoryId         String          @db.Uuid
+  brand              String?         @db.VarChar(100)
+  material           String?         @db.VarChar(200)
+  careInstructions   String?         @db.Text
+  basePrice          Decimal         @db.Decimal(10, 2)
+  discountPercentage Decimal?        @default(0) @db.Decimal(5, 2)
+  mainColorId        String?         @db.Uuid
+  isFeatured         Boolean         @default(false)
+  isActive           Boolean         @default(true)
+  status             ProductStatus   @default(DRAFT)
+  metaTitle          String?         @db.VarChar(200)
+  metaDescription    String?         @db.Text
+  createdAt          DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime        @updatedAt @db.Timestamptz(6)
+
+  // Relationships
+  category       Category       @relation(fields: [categoryId], references: [id])
+  mainColor      Color?         @relation("ProductMainColor", fields: [mainColorId], references: [id])
+  productDesigns ProductDesign[]
+  productColors  ProductColor[]
+  productImages  ProductImage[]
+  inventory      Inventory[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+// one product may be in differen designs
+// ex: product X may have crew necks and oversized
+model ProductDesign {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  designId  String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  design  Design  @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, designId])
+  @@map("product_designs")
+}
+
+// one product may have more than one color
+model ProductColor {
+  id               String   @id @default(uuid()) @db.Uuid
+  productId        String   @db.Uuid
+  colorId          String   @db.Uuid
+  isMainColor      Boolean  @default(false)
+  additionalPrice  Decimal? @default(0) @db.Decimal(10, 2)
+  colorImageUrl    String?  @db.VarChar(500)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color   Color   @relation(fields: [colorId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, colorId])
+  @@map("product_colors")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  colorId   String?  @db.Uuid
+  imageUrl  String   @db.VarChar(500)
+  altText   String?  @db.VarChar(200)
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color   Color?  @relation(fields: [colorId], references: [id])
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model Inventory {
+  id                 String   @id @default(uuid()) @db.Uuid
+  productId          String   @db.Uuid
+  colorId            String   @db.Uuid
+  sizeId             String   @db.Uuid
+  sku                String   @unique @db.VarChar(100)
+  quantity           Int      @default(0)
+  reservedQuantity   Int?     @default(0)
+  lowStockThreshold  Int?     @default(5)
+  costPrice          Decimal? @db.Decimal(10, 2)
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  // Relationships
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color          Color           @relation(fields: [colorId], references: [id])
+  size           Size            @relation(fields: [sizeId], references: [id])
+  stockMovements StockMovement[]
+
+  @@unique([productId, colorId, sizeId])
+  @@index([productId])
+  @@index([sku])
+  @@index([quantity, lowStockThreshold])
+  @@map("inventory")
+}
+
+model StockMovement {
+  id           String              @id @default(uuid()) @db.Uuid
+  inventoryId  String              @db.Uuid
+  movementType StockMovementType
+  quantity     Int
+  reason       String?             @db.VarChar(100)
+  referenceId  String?             @db.Uuid
+  notes        String?             @db.Text
+  createdBy    String?             @db.Uuid
+  createdAt    DateTime            @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+
+  @@index([inventoryId])
+  @@map("stock_movements")
+}
+
+//ENUMS
 enum PhoneType {
   MOBILE
   HOME
-  WORK  // Added work phone option
+  WORK
+}
+
+enum ProductStatus {
+  DRAFT // not ready for customers/seasonal products/under review
+  ACTIVE // products available for customers, available in inventory
+  DISCONTINUED // end of line products
+
+  @@map("product_status")
+}
+
+enum StockMovementType {
+  IN // new inventory in, return from customers (ex: 100 units of blue t-shirts size M received from your manufacturer)
+  OUT // sold to customers, returned to supply(defectives)
+  ADJUSTMENT // stock count corrections, damaged items
+  RESERVED // items in customers shopping cart, orders placed but not yet shipped, wholesale orders
+  //Example: Customer adds 2 black t-shirts to cart, those items get reserved for 30 minutes.
+  RELEASED //reserved item freed up(cart expires or removes items), cancelled orders returnign inventory
+  // Customer's cart expired, so the 2 reserved black t-shirts are released back to available stock.
+  @@map("stock_movement_type")
 }
