@@ -312,4 +312,94 @@ router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Role
   }
 })
 
+router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async (req, res) => {
+  try {
+    const {personalInfo, addressInfo, contactInfo} = req.body;
+
+    if(!personalInfo.id) {
+      return res.status(404).json({
+        success: false,
+        message: 'The Customer you are trying to update does not exist.'
+      });
+    }
+    if(!addressInfo.id) {
+      return res.status(404).json({
+        success: false,
+        message: 'The address you are trying to update does not exist.'
+      });
+    }
+    if(!contactInfo[0].id) {
+      return res.status(404).json({
+        success: false,
+        message: 'The phone number you are trying to update does not exist.'
+      });
+    }
+
+    const updatedCustomer = await prisma.user.update({
+      where: {id : personalInfo.id},
+      data: {
+        firstName: personalInfo.firstName,
+        lastName: personalInfo.lastName,
+        addresses: {
+          update: {
+            where: {id: addressInfo.id},
+            data: {
+              houseNumber: addressInfo.houseNumber,
+              addressLine1: addressInfo.addressLine1,
+              addressLine2: addressInfo.addressLine2,
+              province: addressInfo.province,
+              city: addressInfo.city,
+              zipcode: addressInfo.zipcode
+            }
+          }
+        },
+        phoneNumbers: {
+          updateMany: [
+            {
+              where: {id: contactInfo.id},
+              data: {
+                phoneNumber: contactInfo.phoneNumber
+              }
+            }
+          ]
+        }
+      }
+    })
+
+    if(!updatedCustomer){
+      return res.status(409).json({
+        success: false,
+        message: 'Update failed'
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Customer updated successfully',
+    });
+  } catch(error:any) {
+    console.error('Customer update failed:', error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    if (error.code === "P2002") { // Unique constraint failed
+      return res.status(409).json({
+        success: false,
+        message: "Conflict: duplicate value",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : error,
+    })
+  }
+})
+
 export default router;
