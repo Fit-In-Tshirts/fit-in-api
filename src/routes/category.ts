@@ -12,7 +12,6 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
       pageIndex = 0,
       name = '',
       slug = '',
-      isActive,
       sortColumn = '',
       sortOrder = 'asc',
     } = req.query
@@ -26,11 +25,6 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
     // whitelist valid sortable columns to avoid SQL injection 
     const sortableColumns = ["name", "slug", "sortOrder"];
 
-    let parsedIsActive: boolean | undefined = undefined;
-    if (isActive !== undefined) {
-      parsedIsActive = (isActive === "true"); // "true" → true, anything else → false
-    }
-
     const whereClause: any = {
       ...(name && {
         name: {
@@ -43,10 +37,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
           contains: slug as string,
           mode: 'insensitive'
         }
-      }),
-      ...(parsedIsActive !== undefined && {
-        isActive: parsedIsActive
-      }),
+      })
     }
 
     const orderBy = sortableColumns.includes(sortColumn as string) ?
@@ -58,8 +49,6 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
         name: true,
         slug: true,
         description: true,
-        imageUrl: true,
-        isActive: true,
         sortOrder: true,
       },
       skip: skip,
