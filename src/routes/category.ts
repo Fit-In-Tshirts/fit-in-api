@@ -140,4 +140,114 @@ router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Role
   }
 })
 
+router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async(req, res) => {
+  try {
+    const { category } = req.body;
+
+    if(!category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bad Request'
+      });
+    }
+
+    if(!category.id) {
+      return res.status(404).json({
+        success: false,
+        message: 'The Category you are trying to update does not exist.'
+      });
+    }
+
+    const parsedSortOrder = (category.sortOrder !== undefined && category.sortOrder !== null) ? Number(category.sortOrder) : 0;
+
+    const updatedCategory = await prisma.category.update({
+      where: {id: category.id},
+      data: {
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        sortOrder: parsedSortOrder,
+      }
+    })
+
+    if(!updatedCategory){
+      return res.status(409).json({
+        success: false,
+        message: 'Update failed'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Category updated successfully',
+    });
+  } catch(error:any) {
+    console.error('Category update failed:', error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "Conflict: duplicate value",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : error,
+    })
+  }
+})
+
+router.post('/create', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async(req, res) => {
+  try {
+    const { category } = req.body;
+    console.log(category);
+
+    if(!category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bad Request'
+      });
+    }
+
+    const parsedSortOrder = (category.sortOrder !== undefined && category.sortOrder !== null) ? Number(category.sortOrder) : 0;
+
+    const createdCategory = await prisma.category.create({
+      data: {
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        sortOrder: parsedSortOrder
+      }
+    })
+
+    if(!createdCategory){
+      return res.status(409).json({
+        success: false,
+        message: 'Create failed'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Category created successfully',
+    });
+  } catch(error:any) {
+    console.error('Category creation failed:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : error,
+    })
+  }
+})
+
 export default router;
