@@ -1,9 +1,11 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
+import { authenticateToken, requireRole } from '../middlewares/JWT_Middleware';
+import { Roles } from '../types/roles';
 
 const router = express.Router();
 
-router.get('/getall', async (req, res) => {
+router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async (req, res) => {
   try {
     const { 
       pageSize = 10, 
@@ -90,11 +92,63 @@ router.get('/getall', async (req, res) => {
     });
   } catch(error:any) {
     return res.status(404).json({
-        success: false,
-        message: 'No category found'
-      });
+      success: false,
+      message: 'No category found'
+    });
   }
   
 });
+
+router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async(req, res)=>{
+  try {
+    const { id } = req.body
+
+    if(!id) {
+      return res.status(422).json({
+        success: false,
+        message: 'Category Id has not been received'
+      });
+    }
+
+    const categoryId = id.toString()
+
+    const category = await prisma.category.findUnique({
+      where: {
+        id: categoryId,
+      }
+    })
+
+    if(!category) {
+      return res.status(404).json({
+        success: false,
+        message: 'No category found'
+      });
+    }
+
+    const deletedCategory = await prisma.category.delete({
+      where: {
+        id: categoryId
+      }
+    })
+
+    if(!deletedCategory) {
+      return res.status(409).json({
+        success: false,
+        message: 'Category can not be deleted'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Category deleted successfully',
+    });
+
+  } catch(error: any) {
+    return res.status(404).json({
+      success: false,
+      message: 'No category found'
+    });
+  }
+})
 
 export default router;
