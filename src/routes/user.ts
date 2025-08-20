@@ -1,11 +1,39 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
+import { authenticateToken, requireRole } from '../middlewares/JWT_Middleware';
+import { Roles } from '../types/roles';
 
 const router = express.Router();
 
-router.get('/getall', async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.send({message:res.status, data:users});
+router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]),async (req, res) => {
+  try{
+    const users = await prisma.user.findMany();
+
+    if(!users) {
+      return res.status(204).json({
+        success: true,
+        message: 'No users found',
+        data: {
+          users: []
+        }
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Retrieval successful',
+      data: {
+        users: users
+      }
+    })
+  } catch(error:any) {
+    console.error('Signup error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : error,
+    })
+  };
 });
 
 export default router;

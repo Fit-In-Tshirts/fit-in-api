@@ -39,7 +39,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 };
 
 //Middleware to check specific roles
-export const requireRole = (allowedRoles: number[]) => {
+export const requireRole = (allowedRoles: string[]) => {
   return (req:Request, res:Response, next:NextFunction) => {
     if(!req.user) {
       return res.status(401).json({
