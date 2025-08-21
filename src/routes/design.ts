@@ -23,7 +23,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
     const validSortOrder = ['asc', 'desc'].includes(sortOrder as string) ? sortOrder as string : 'asc';
 
     // whitelist valid sortable columns to avoid SQL injection 
-    const sortableColumns = ["name", "slug", "sortOrder"];
+    const sortableColumns = ["name", "slug"];
 
     const whereClause: any = {
       ...(name && {
@@ -40,16 +40,14 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
       })
     }
 
-    const orderBy = sortableColumns.includes(sortColumn as string) ?
-      {[sortColumn as string]: validSortOrder} : undefined;
+    const orderBy = sortableColumns.includes(sortColumn as string) ? {[sortColumn as string]: validSortOrder} : undefined;
 
-    const categories = await prisma.category.findMany({
+    const designs = await prisma.design.findMany({
       select: {
         id: true,
         name: true,
         slug: true,
         description: true,
-        sortOrder: true,
       },
       skip: skip,
       take: parsedPageSize,
@@ -57,16 +55,16 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
       orderBy: orderBy
     });
 
-    const totalRecords = await prisma.category.count({
+    const totalRecords = await prisma.design.count({
       where: whereClause
     });
 
-    if(!categories) {
+    if(!designs) {
       return res.status(204).json({
         success: true,
-        message: 'No category found',
+        message: 'No designs found',
         data: {
-          categories: []
+          designs: []
         }
       })
     }
@@ -75,14 +73,14 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
       success: true,
       message: 'Retrieval successful',
       data: {
-        categories: categories,
+        designs: designs,
         totalRecords: totalRecords,
       }
     });
   } catch(error:any) {
     return res.status(404).json({
       success: false,
-      message: 'No category found'
+      message: 'No designs found'
     });
   }
   
@@ -95,82 +93,79 @@ router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Role
     if(!id) {
       return res.status(422).json({
         success: false,
-        message: 'Category Id has not been received'
+        message: 'Design Id has not been received'
       });
     }
 
-    const categoryId = id.toString()
+    const designId = id.toString()
 
-    const category = await prisma.category.findUnique({
+    const design = await prisma.design.findUnique({
       where: {
-        id: categoryId,
+        id: designId,
       }
     })
 
-    if(!category) {
+    if(!design) {
       return res.status(404).json({
         success: false,
-        message: 'No category found'
+        message: 'No design found'
       });
     }
 
-    const deletedCategory = await prisma.category.delete({
+    const deletedDesign = await prisma.design.delete({
       where: {
-        id: categoryId
+        id: designId
       }
     })
 
-    if(!deletedCategory) {
+    if(!deletedDesign) {
       return res.status(409).json({
         success: false,
-        message: 'Category can not be deleted'
+        message: 'Design can not be deleted'
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Category deleted successfully',
+      message: 'Design deleted successfully',
     });
 
   } catch(error: any) {
     return res.status(404).json({
       success: false,
-      message: 'No category found'
+      message: 'No design found'
     });
   }
 })
 
 router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async(req, res) => {
   try {
-    const { category } = req.body;
+    const { design } = req.body;
 
-    if(!category) {
+    if(!design) {
       return res.status(400).json({
         success: false,
         message: 'Bad Request'
       });
     }
 
-    if(!category.id) {
+    if(!design.id) {
       return res.status(404).json({
         success: false,
-        message: 'The Category you are trying to update does not exist.'
+        message: 'The design you are trying to update does not exist.'
       });
     }
 
-    const parsedSortOrder = (category.sortOrder !== undefined && category.sortOrder !== null) ? Number(category.sortOrder) : 0;
-
-    const updatedCategory = await prisma.category.update({
-      where: {id: category.id},
+    const updatedDesign = await prisma.design.update({
+      where: {id: design.id},
       data: {
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        sortOrder: parsedSortOrder,
+        name: design.name,
+        slug: design.slug,
+        description: design.description,
       }
     })
 
-    if(!updatedCategory){
+    if(!updatedDesign){
       return res.status(409).json({
         success: false,
         message: 'Update failed'
@@ -179,15 +174,15 @@ router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER
 
     return res.status(200).json({
       success: true,
-      message: 'Category updated successfully',
+      message: 'Design updated successfully',
     });
   } catch(error:any) {
-    console.error('Category update failed:', error);
+    console.error('Design update failed:', error);
 
     if (error.code === "P2025") {
       return res.status(404).json({
         success: false,
-        message: "Category not found",
+        message: "Design not found",
       });
     }
 
@@ -208,40 +203,37 @@ router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER
 
 router.post('/create', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async(req, res) => {
   try {
-    const { category } = req.body;
-    console.log(category);
+    const { design } = req.body;
+    console.log(design);
 
-    if(!category) {
+    if(!design) {
       return res.status(400).json({
         success: false,
         message: 'Bad Request'
       });
     }
 
-    const parsedSortOrder = (category.sortOrder !== undefined && category.sortOrder !== null) ? Number(category.sortOrder) : 0;
-
-    const createdCategory = await prisma.category.create({
+    const createdDesign = await prisma.design.create({
       data: {
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        sortOrder: parsedSortOrder
+        name: design.name,
+        slug: design.slug,
+        description: design.description,
       }
     })
 
-    if(!createdCategory){
+    if(!createdDesign){
       return res.status(409).json({
         success: false,
-        message: 'Create failed'
+        message: 'Creating design failed'
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Category created successfully',
+      message: 'Design created successfully',
     });
   } catch(error:any) {
-    console.error('Category creation failed:', error);
+    console.error('design creation failed:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
