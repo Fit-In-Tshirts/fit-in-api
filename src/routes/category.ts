@@ -50,6 +50,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
         slug: true,
         description: true,
         sortOrder: true,
+        sizeGuide: true,
       },
       skip: skip,
       take: parsedPageSize,
