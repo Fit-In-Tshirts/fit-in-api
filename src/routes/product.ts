@@ -7,6 +7,15 @@ const router = express.Router();
 
 router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]),async (req, res) => {
   try {
+    const { 
+      pageSize = 10, 
+      pageIndex = 0,
+    } = req.query
+
+    const parsedPageSize = Math.max(1, parseInt(pageSize as string) || 10);
+    const parsedPageIndex = Math.max(0, parseInt(pageIndex as string) || 0);
+    const skip = parsedPageIndex * parsedPageSize;
+
     const products = await prisma.product.findMany({
       select: {
         id: true,
@@ -80,7 +89,9 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
             sortOrder:true
           }
         }
-      }
+      },
+      skip: skip,
+      take: parsedPageSize,
     });
 
     const totalRecords = await prisma.product.count();
@@ -162,6 +173,45 @@ router.delete('/delete', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPE
       message: 'No product found'
     });
   }
+})
+
+router.get('/get_filter_data', async(req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      select: {
+        name: true,
+        slug:true,
+      },
+      orderBy: {
+        name: 'asc', 
+      }
+    })
+
+    const designs = await prisma.design.findMany({
+      select: {
+        name: true,
+        slug: true,
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    })
+
+    return res.status(200).json({
+      success: true,
+      message: 'Retrieval successful',
+      data: {
+        categoryNames: categories,
+        designNames: designs
+      }
+    })
+  } catch(error:any) {
+    return res.status(404).json({
+      success: false,
+      message: 'No filter data found'
+    });
+  }
+
 })
 
 export default router;
