@@ -3,7 +3,6 @@ import { prisma } from '../lib/prisma';
 import { authenticateToken, requireRole } from '../middlewares/JWT_Middleware';
 import { Roles } from '../types/roles';
 import { Buckets } from '../types/buckets';
-import { supabaseStorage } from '../lib/supabaseStorage';
 
 const router = express.Router();
 
