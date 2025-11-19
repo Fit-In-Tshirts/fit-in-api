@@ -12,7 +12,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -98,6 +97,7 @@ model Category {
   slug        String   @unique @db.VarChar(100)
   description String?  @db.Text
   imageUrl    String?  @db.VarChar(500)
+  sizeGuide   String?  @db.VarChar(500)
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
@@ -106,7 +106,6 @@ model Category {
   // Relationships
   products        Product[]
   categoryDesigns CategoryDesign[]
-  sizes           Size[]
 
   @@map("categories")
 }
@@ -161,18 +160,16 @@ model Color {
 
 model Size {
   id           String   @id @default(uuid()) @db.Uuid
-  name         String   @db.VarChar(10)
-  categoryId   String?  @db.Uuid
+  name         String   @unique @db.VarChar(10) // 'XS', 'S', 'M', 'L', 'XL', 'XXL', etc.
+  description  String?  @db.VarChar(50) // 'Extra Small', 'Small', 'Medium', etc.
   sortOrder    Int      @default(0)
-  measurements Json?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
 
   // Relationships
-  category  Category?   @relation(fields: [categoryId], references: [id])
+  productSizes ProductSize[]
   inventory Inventory[]
 
-  @@unique([name, categoryId])
   @@map("sizes")
 }
 
@@ -202,12 +199,29 @@ model Product {
   productDesigns ProductDesign[]
   productColors  ProductColor[]
   productImages  ProductImage[]
+  productSizes   ProductSize[]
   inventory      Inventory[]
 
   @@index([categoryId])
   @@index([isActive])
   @@index([isFeatured])
   @@map("products")
+}
+
+model ProductSize {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  sizeId    String   @db.Uuid
+  isActive  Boolean  @default(true) // Can temporarily disable a size for a product
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relationships
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size    Size    @relation(fields: [sizeId], references: [id])
+
+  @@unique([productId, sizeId])
+  @@index([productId])
+  @@map("product_sizes")
 }
 
 // one product may be in differen designs

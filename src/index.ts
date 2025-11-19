@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
+import productRouter from './routes/product';
 import designRouter from './routes/design';
 import categoryRouter from './routes/category';
 import customerRouter from './routes/customer';
@@ -18,6 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 // Mount routes
+app.use('/api/product', productRouter);
 app.use('/api/design', designRouter);
 app.use('/api/category', categoryRouter);
 app.use('/api/customer', customerRouter);

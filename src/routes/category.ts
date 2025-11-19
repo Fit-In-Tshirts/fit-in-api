@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateToken, requireRole } from '../middlewares/JWT_Middleware';
 import { Roles } from '../types/roles';
+import { Buckets } from '../types/buckets';
 
 const router = express.Router();
 
@@ -50,6 +51,7 @@ router.get('/getall', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_A
         slug: true,
         description: true,
         sortOrder: true,
+        sizeGuide: true,
       },
       skip: skip,
       take: parsedPageSize,
@@ -101,17 +103,27 @@ router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Role
 
     const categoryId = id.toString()
 
-    const category = await prisma.category.findUnique({
+    const categoryToBeDeleted = await prisma.category.findUnique({
       where: {
         id: categoryId,
       }
     })
 
-    if(!category) {
+    if(!categoryToBeDeleted) {
       return res.status(404).json({
         success: false,
         message: 'No category found'
       });
+    }
+
+    //get the file path of the size-guide image
+    let sizeGuideToBeDeleted = null
+    if (categoryToBeDeleted.sizeGuide) {
+      const urlParts = categoryToBeDeleted.sizeGuide.split('/')
+      const bucketIndex = urlParts.findIndex(part => part === Buckets.SIZE_GUIDES)
+      if (bucketIndex !== -1) {
+        sizeGuideToBeDeleted = urlParts.slice(bucketIndex + 1).join('/')
+      }
     }
 
     const deletedCategory = await prisma.category.delete({
@@ -125,6 +137,16 @@ router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Role
         success: false,
         message: 'Category can not be deleted'
       });
+    }
+
+    if (sizeGuideToBeDeleted) {
+      const { error: storageError } = await supabaseStorage.storage
+        .from(Buckets.SIZE_GUIDES)
+        .remove([sizeGuideToBeDeleted])
+      
+      if (storageError) {
+        console.error('Failed to delete image from storage:', storageError)
+      }
     }
 
     return res.status(200).json({
@@ -142,31 +164,40 @@ router.delete('/delete_by_id', authenticateToken, requireRole([Roles.ADMIN, Role
 
 router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async(req, res) => {
   try {
-    const { category } = req.body;
+    const { categoryData } = req.body;
 
-    if(!category) {
+    console.log(categoryData)
+
+    if(!categoryData || !categoryData.id) {
       return res.status(400).json({
         success: false,
         message: 'Bad Request'
       });
     }
 
-    if(!category.id) {
+    const CategoryToBeUpdated = await prisma.category.findUnique({
+      where: {id: categoryData.id}
+    })
+
+    if(!CategoryToBeUpdated) {
       return res.status(404).json({
         success: false,
-        message: 'The Category you are trying to update does not exist.'
+        message: 'Target category does not exist.'
       });
     }
 
-    const parsedSortOrder = (category.sortOrder !== undefined && category.sortOrder !== null) ? Number(category.sortOrder) : 0;
+    const prevImage = CategoryToBeUpdated.sizeGuide;
+
+    const parsedSortOrder = (categoryData.sortOrder !== undefined && categoryData.sortOrder !== null) ? Number(categoryData.sortOrder) : 0;
 
     const updatedCategory = await prisma.category.update({
-      where: {id: category.id},
+      where: {id: categoryData.id},
       data: {
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
+        name: categoryData.name,
+        slug: categoryData.slug,
+        description: categoryData.description,
         sortOrder: parsedSortOrder,
+        sizeGuide: categoryData.sizeGuide,
       }
     })
 
@@ -175,6 +206,24 @@ router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER
         success: false,
         message: 'Update failed'
       });
+    }
+
+    if(prevImage !== categoryData.sizeGuide) {
+      let filePath = null
+      if (prevImage) {
+        const urlParts = prevImage.split('/')
+        const bucketIndex = urlParts.findIndex(part => part === Buckets.SIZE_GUIDES)
+        if (bucketIndex !== -1) {
+          filePath = urlParts.slice(bucketIndex + 1).join('/')
+        }
+      }
+      const { error: storageError } = await supabaseStorage.storage
+        .from(Buckets.SIZE_GUIDES)
+        .remove([filePath!])
+      
+      if (storageError) {
+        console.error('Failed to delete image from storage:', storageError)
+      }
     }
 
     return res.status(200).json({
@@ -208,31 +257,31 @@ router.patch('/update', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER
 
 router.post('/create', authenticateToken, requireRole([Roles.ADMIN, Roles.SUPER_ADMIN]), async(req, res) => {
   try {
-    const { category } = req.body;
-    console.log(category);
+    const { categoryData } = req.body;
 
-    if(!category) {
+    if(!categoryData) {
       return res.status(400).json({
         success: false,
         message: 'Bad Request'
       });
     }
 
-    const parsedSortOrder = (category.sortOrder !== undefined && category.sortOrder !== null) ? Number(category.sortOrder) : 0;
+    const parsedSortOrder = (categoryData.sortOrder !== undefined && categoryData.sortOrder !== null) ? Number(categoryData.sortOrder) : 0;
 
     const createdCategory = await prisma.category.create({
       data: {
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        sortOrder: parsedSortOrder
+        name: categoryData.name,
+        slug: categoryData.slug,
+        description: categoryData.description,
+        sortOrder: parsedSortOrder,
+        sizeGuide: categoryData.sizeGuide
       }
     })
 
     if(!createdCategory){
       return res.status(409).json({
         success: false,
-        message: 'Create failed'
+        message: 'Category creation failed'
       });
     }
 
